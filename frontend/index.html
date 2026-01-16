@@ -32,7 +32,7 @@
 
 <script>
   // ===== CONFIG =====
-  const CLOUD_FUNCTION_URL = 'http://localhost:3000/lookupTicket'; // Local backend for testing
+  const CLOUD_FUNCTION_URL = 'https://test2-bsy.pages.dev/lookupTicket'; // Your public Cloudflare backend
   const EVENT_ID = '68b3d94f-c7c4-4c72-85f7-2b96e04e4ff5'; // Replace with your Wix Event ID
 
   // ===== Scan result =====
@@ -42,9 +42,14 @@
     try {
       const res = await fetch(CLOUD_FUNCTION_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ barcode, eventId: EVENT_ID })
       });
+
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
 
       const data = await res.json();
 
