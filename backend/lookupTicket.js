@@ -6,7 +6,7 @@ const { checkout } = require('@wix/events');
 
 const wixClient = createClient({
   modules: { checkout },
-  auth: OAuthStrategy({ clientId: '<YOUR_OAUTH_APP_ID>' }) // replace with your OAuth App ID
+  auth: OAuthStrategy({ clientId: '4510e9a0-412a-41ac-9ebc-9ebe24b94dcb' }) // replace with your OAuth App ID
 });
 
 // Cloud function entry
