@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>Event Check-In</title>
-  <h1>Test</h1>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body { font-family: Arial; padding: 20px; }
@@ -18,61 +17,65 @@
 <div id="status">Initializing...</div>
 <div id="ticketInfo">Scan a ticket to see info...</div>
 
-<script>
-const CLOUD_FUNCTION_PATH = '/lookupTicket'; // local or Cloudbase path
-const EVENT_ID = '45557155-534c-4944-bfe9-62b16d01302d'; // replace with your Wix Event ID
+<script type="module">
+  // Replace with your Cloudbase/Server URL once deployed
+  const CLOUD_FUNCTION_URL = 'http://localhost:3000/lookupTicket';
+  const EVENT_ID = '<YOUR_EVENT_ID>'; // Replace with your Wix Event ID
 
-async function scanResult(barcode) {
-  document.getElementById('status').innerText = `Scanning: ${barcode}...`;
+  // Lookup ticket from backend
+  async function scanResult(barcode) {
+    document.getElementById('status').innerText = `Scanning: ${barcode}...`;
 
-  try {
-    const res = await fetch(CLOUD_FUNCTION_PATH, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ barcode, eventId: EVENT_ID })
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch(CLOUD_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barcode, eventId: EVENT_ID })
+      });
 
-    if(data.error){
-      document.getElementById('ticketInfo').innerText = data.error;
-      document.getElementById('status').innerText = '❌ Ticket not found';
-    } else {
-      document.getElementById('ticketInfo').innerHTML =
-        `Name: ${data.name || 'N/A'}<br>` +
-        `Price: ${data.price || 'N/A'}<br>` +
-        `Section: ${data.section || 'N/A'}<br>` +
-        `Row: ${data.row || 'N/A'}<br>` +
-        `Seat: ${data.seat || 'N/A'}<br>` +
-        `Checked In: ${data.checkedIn ? 'Yes' : 'No'}`;
-      document.getElementById('status').innerText = '✅ Ticket found';
+      const data = await res.json();
+
+      if(data.error){
+        document.getElementById('ticketInfo').innerText = data.error;
+        document.getElementById('status').innerText = '❌ Ticket not found';
+      } else {
+        document.getElementById('ticketInfo').innerHTML =
+          `Name: ${data.name || 'N/A'}<br>` +
+          `Price: ${data.price || 'N/A'}<br>` +
+          `Section: ${data.section || 'N/A'}<br>` +
+          `Row: ${data.row || 'N/A'}<br>` +
+          `Seat: ${data.seat || 'N/A'}<br>` +
+          `Checked In: ${data.checkedIn ? 'Yes' : 'No'}`;
+        document.getElementById('status').innerText = '✅ Ticket found';
+      }
+    } catch(err) {
+      document.getElementById('ticketInfo').innerText = 'Error fetching ticket';
+      document.getElementById('status').innerText = '❌ Error';
+      console.error(err);
     }
-  } catch(err) {
-    document.getElementById('ticketInfo').innerText = 'Error fetching ticket';
-    document.getElementById('status').innerText = '❌ Error';
-    console.error(err);
   }
-}
 
-// Initialize QR scanner
-async function startScanner() {
-  try {
-    await navigator.mediaDevices.getUserMedia({ video: true });
-    document.getElementById('status').innerText = 'Camera permission granted ✅';
+  // Start QR scanner with live camera preview
+  async function startScanner() {
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true });
+      document.getElementById('status').innerText = 'Camera permission granted ✅';
 
-    const scanner = new Html5Qrcode("reader");
-    scanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (decodedText) => { scanResult(decodedText); },
-      (err) => console.warn(err)
-    );
-  } catch(err) {
-    document.getElementById('status').innerText = 'Camera permission denied ❌';
-    console.error(err);
+      const scanner = new Html5Qrcode("reader");
+      scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText) => scanResult(decodedText),
+        (error) => console.warn('Scanning error:', error)
+      );
+    } catch(err) {
+      document.getElementById('status').innerText = 'Camera permission denied ❌';
+      console.error(err);
+    }
   }
-}
 
-startScanner();
+  // Initialize scanner
+  startScanner();
 </script>
 
 </body>
