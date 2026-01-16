@@ -1,47 +1,44 @@
-// backend/lookupTicket.js
-// Node.js backend for Wix ticket lookup
-// Requires: npm install @wix/sdk @wix/events express body-parser
+// Cloudflare Worker backend for Wix ticket lookup
+// Deploy this on Cloudflare Workers
 
-import express from 'express';
-import bodyParser from 'body-parser';
 import { createClient, OAuthStrategy } from '@wix/sdk';
 import { wixEvents } from '@wix/events';
 
-const app = express();
-const PORT = 3000;
+const WIX_CLIENT_ID = 'f28ff436-ab00-4e0a-977b-8cfdc70f258b'; // Your Wix Headless Client ID
 
-app.use(bodyParser.json());
-app.use(express.static('../frontend')); // serve frontend files
-
-// ==== Wix Client ====
+// Create Wix SDK client
 const wixClient = createClient({
   modules: { wixEvents },
-  auth: OAuthStrategy({ clientId: 'f28ff436-ab00-4e0a-977b-8cfdc70f258b' }) // Your Headless Client ID
+  auth: OAuthStrategy({ clientId: WIX_CLIENT_ID })
 });
 
-// ===== Lookup ticket endpoint =====
-app.post('/lookupTicket', async (req, res) => {
-  const { barcode, eventId } = req.body;
+// Worker handler
+export default {
+  async fetch(request) {
+    if (request.method === 'POST') {
+      try {
+        const { barcode, eventId } = await request.json();
 
-  try {
-    // Fetch all tickets for the event
-    const response = await wixClient.wixEvents.listTickets({ eventId, limit: 100 });
-    // Find the ticket matching barcode
-    const ticket = response.tickets.find(t => t.barcode === barcode);
-    res.json(ticket || { error: 'Ticket not found' });
-  } catch (err) {
-    console.error(err);
-    res.json({ error: err.message });
+        // List all tickets for the event
+        const ticketsResponse = await wixClient.wixEvents.listTickets({
+          eventId,
+          limit: 100
+        });
+
+        const ticket = ticketsResponse.tickets.find(t => t.barcode === barcode);
+
+        return new Response(JSON.stringify(ticket || { error: 'Ticket not found' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+    } else {
+      return new Response('Method not allowed', { status: 405 });
+    }
   }
-});
-
-// ===== Test server connection endpoint =====
-app.get('/testConnection', async (req, res) => {
-  try {
-    res.json({ status: 'ok', message: 'Server running and backend ready!' });
-  } catch(err) {
-    res.json({ status: 'error', message: err.message });
-  }
-});
-
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+};
