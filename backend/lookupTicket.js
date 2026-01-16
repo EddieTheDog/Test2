@@ -1,31 +1,42 @@
 // backend/lookupTicket.js
-// This is your backend cloud function for Wix ticket lookup
+// Node.js / Cloudbase backend function
 
-const { createClient, OAuthStrategy } = require('@wix/sdk');
-const { checkout } = require('@wix/events');
+import { createClient, OAuthStrategy } from '@wix/sdk';
+import { wixEvents } from '@wix/events';
 
-const wixClient = createClient({
-  modules: { checkout },
-  auth: OAuthStrategy({ clientId: '4510e9a0-412a-41ac-9ebc-9ebe24b94dcb' }) // replace with your OAuth App ID
+// Replace with your OAuth App ID
+const myWixClient = createClient({
+  modules: { wixEvents },
+  auth: OAuthStrategy({ clientId: 'f28ff436-ab00-4e0a-977b-8cfdc70f258b' })
 });
 
-// Cloud function entry
-exports.main = async function(event) {
-  const barcode = event.barcode;
-  const eventId = event.eventId;
+// Cloud function entry point
+export async function main(event) {
+  const { barcode, eventId } = event;
 
   try {
-    // Fetch available tickets
-    const response = await wixClient.checkout.listAvailableTickets({
+    // List tickets for the event
+    const ticketResponse = await myWixClient.wixEvents.listTickets({
       eventId,
       limit: 100
     });
 
-    // Find ticket matching barcode
-    const ticket = response.definitions.find(t => t.barcode === barcode);
+    // Find the ticket matching the scanned barcode
+    const ticket = ticketResponse.tickets.find(t => t.barcode === barcode);
 
     return ticket || { error: "Ticket not found" };
-  } catch(err) {
+  } catch (err) {
+    console.error(err);
     return { error: err.message };
   }
-};
+}
+
+// Optional: test server connection
+export async function testConnection(eventId) {
+  try {
+    const response = await myWixClient.wixEvents.listTickets({ eventId, limit: 1 });
+    return { status: "ok", totalTickets: response.tickets.length };
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+}
