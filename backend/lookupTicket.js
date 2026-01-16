@@ -1,42 +1,47 @@
 // backend/lookupTicket.js
-// Node.js / Cloudbase backend function
+// Node.js backend for Wix ticket lookup
+// Requires: npm install @wix/sdk @wix/events express body-parser
 
+import express from 'express';
+import bodyParser from 'body-parser';
 import { createClient, OAuthStrategy } from '@wix/sdk';
 import { wixEvents } from '@wix/events';
 
-// Replace with your OAuth App ID
-const myWixClient = createClient({
+const app = express();
+const PORT = 3000;
+
+app.use(bodyParser.json());
+app.use(express.static('../frontend')); // serve frontend files
+
+// ==== Wix Client ====
+const wixClient = createClient({
   modules: { wixEvents },
-  auth: OAuthStrategy({ clientId: 'f28ff436-ab00-4e0a-977b-8cfdc70f258b' })
+  auth: OAuthStrategy({ clientId: 'f28ff436-ab00-4e0a-977b-8cfdc70f258b' }) // Your Headless Client ID
 });
 
-// Cloud function entry point
-export async function main(event) {
-  const { barcode, eventId } = event;
+// ===== Lookup ticket endpoint =====
+app.post('/lookupTicket', async (req, res) => {
+  const { barcode, eventId } = req.body;
 
   try {
-    // List tickets for the event
-    const ticketResponse = await myWixClient.wixEvents.listTickets({
-      eventId,
-      limit: 100
-    });
-
-    // Find the ticket matching the scanned barcode
-    const ticket = ticketResponse.tickets.find(t => t.barcode === barcode);
-
-    return ticket || { error: "Ticket not found" };
+    // Fetch all tickets for the event
+    const response = await wixClient.wixEvents.listTickets({ eventId, limit: 100 });
+    // Find the ticket matching barcode
+    const ticket = response.tickets.find(t => t.barcode === barcode);
+    res.json(ticket || { error: 'Ticket not found' });
   } catch (err) {
     console.error(err);
-    return { error: err.message };
+    res.json({ error: err.message });
   }
-}
+});
 
-// Optional: test server connection
-export async function testConnection(eventId) {
+// ===== Test server connection endpoint =====
+app.get('/testConnection', async (req, res) => {
   try {
-    const response = await myWixClient.wixEvents.listTickets({ eventId, limit: 1 });
-    return { status: "ok", totalTickets: response.tickets.length };
-  } catch (err) {
-    return { status: "error", message: err.message };
+    res.json({ status: 'ok', message: 'Server running and backend ready!' });
+  } catch(err) {
+    res.json({ status: 'error', message: err.message });
   }
-}
+});
+
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
