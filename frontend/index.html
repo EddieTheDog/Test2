@@ -4,25 +4,38 @@
   <title>Event Check-In</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    #reader { width: 400px; margin: auto; }
+    body { font-family: Arial; padding: 20px; text-align: center; }
+    #reader { width: 400px; margin: 20px auto; }
     #ticketInfo { margin-top: 20px; font-size: 18px; }
     #status { margin-top: 10px; font-weight: bold; }
+    #manualInput { margin-top: 20px; }
+    input { padding: 5px; width: 250px; }
+    button { padding: 5px 10px; }
   </style>
 </head>
 <body>
 
 <h1>Event Check-In</h1>
+
+<!-- Camera preview -->
 <div id="reader"></div>
+
+<!-- Status & ticket info -->
 <div id="status">Initializing...</div>
-<div id="ticketInfo">Scan a ticket to see info...</div>
+<div id="ticketInfo">Scan a ticket or enter a URL to test...</div>
 
-<script type="module">
-  // Replace with your Cloudbase/Server URL once deployed
-  const CLOUD_FUNCTION_URL = 'http://localhost:3000/lookupTicket';
-  const EVENT_ID = '<YOUR_EVENT_ID>'; // Replace with your Wix Event ID
+<!-- Manual URL input -->
+<div id="manualInput">
+  <input type="text" id="manualUrl" placeholder="Paste QR URL here" />
+  <button onclick="manualScan()">Test URL</button>
+</div>
 
-  // Lookup ticket from backend
+<script>
+  // ===== CONFIG =====
+  const CLOUD_FUNCTION_URL = 'http://localhost:3000/lookupTicket'; // Local backend for testing
+  const EVENT_ID = '68b3d94f-c7c4-4c72-85f7-2b96e04e4ff5'; // Replace with your Wix Event ID
+
+  // ===== Scan result =====
   async function scanResult(barcode) {
     document.getElementById('status').innerText = `Scanning: ${barcode}...`;
 
@@ -55,7 +68,19 @@
     }
   }
 
-  // Start QR scanner with live camera preview
+  // ===== Manual scan input =====
+  function manualScan() {
+    const url = document.getElementById('manualUrl').value.trim();
+    if(!url) return alert("Please enter a URL to test");
+
+    // Extract barcode from URL (last part)
+    const parts = url.split('/');
+    const barcode = parts[parts.length - 1];
+
+    scanResult(barcode);
+  }
+
+  // ===== QR scanner =====
   async function startScanner() {
     try {
       await navigator.mediaDevices.getUserMedia({ video: true });
@@ -66,7 +91,7 @@
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
         (decodedText) => scanResult(decodedText),
-        (error) => console.warn('Scanning error:', error)
+        (err) => console.warn('Scanning error:', err)
       );
     } catch(err) {
       document.getElementById('status').innerText = 'Camera permission denied ❌';
@@ -74,7 +99,7 @@
     }
   }
 
-  // Initialize scanner
+  // ===== Initialize =====
   startScanner();
 </script>
 
