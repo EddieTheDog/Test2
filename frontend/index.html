@@ -32,7 +32,7 @@
 
 <script>
   // ===== CONFIG =====
-  const CLOUD_FUNCTION_URL = 'https://test2-bsy.pages.dev/lookupTicket'; // Your public Cloudflare backend
+  const CLOUD_FUNCTION_URL = 'https://<your-worker-name>.<your-subdomain>.workers.dev'; // Replace with your Worker URL
   const EVENT_ID = '68b3d94f-c7c4-4c72-85f7-2b96e04e4ff5'; // Replace with your Wix Event ID
 
   // ===== Scan result =====
@@ -42,10 +42,7 @@
     try {
       const res = await fetch(CLOUD_FUNCTION_URL, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ barcode, eventId: EVENT_ID })
       });
 
@@ -53,7 +50,7 @@
 
       const data = await res.json();
 
-      if(data.error){
+      if (data.error) {
         document.getElementById('ticketInfo').innerText = data.error;
         document.getElementById('status').innerText = '❌ Ticket not found';
       } else {
@@ -66,7 +63,7 @@
           `Checked In: ${data.checkedIn ? 'Yes' : 'No'}`;
         document.getElementById('status').innerText = '✅ Ticket found';
       }
-    } catch(err) {
+    } catch (err) {
       document.getElementById('ticketInfo').innerText = 'Error fetching ticket';
       document.getElementById('status').innerText = '❌ Error';
       console.error(err);
@@ -76,7 +73,7 @@
   // ===== Manual scan input =====
   function manualScan() {
     const url = document.getElementById('manualUrl').value.trim();
-    if(!url) return alert("Please enter a URL to test");
+    if (!url) return alert("Please enter a URL to test");
 
     // Extract barcode from URL (last part)
     const parts = url.split('/');
@@ -98,7 +95,7 @@
         (decodedText) => scanResult(decodedText),
         (err) => console.warn('Scanning error:', err)
       );
-    } catch(err) {
+    } catch (err) {
       document.getElementById('status').innerText = 'Camera permission denied ❌';
       console.error(err);
     }
